@@ -1,0 +1,16 @@
+# local secrets and config (examples live in config/*.example)
+secrets/
+data/
+config/votebot.env
+config/options.json
+config/servers.json
+*.db
+*.db-*
+*.v1_backup
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.orig

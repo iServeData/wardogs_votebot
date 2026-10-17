@@ -1,0 +1,15 @@
+# Proposes updates as pull requests. Nothing is installed on a server until someone
+# merges, pulls and runs deploy/update.sh.
+# pip: Dependabot bumps requirements.txt; CI then asks for the lock to be refreshed
+# (bash tools/update_lock.sh on the pull request branch), so hashes are never skipped.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

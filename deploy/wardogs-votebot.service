@@ -1,0 +1,71 @@
+# /etc/systemd/system/wardogs-votebot.service
+# Hardened systemd unit. Check the score with: systemd-analyze security wardogs-votebot
+[Unit]
+Description=WARDOGS Discord map vote bot
+Wants=network-online.target
+After=network-online.target
+# Stop restart loops (e.g. bad token) from hammering Discord's login endpoint
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=votebot
+Group=votebot
+WorkingDirectory=/opt/wardogs-votebot
+EnvironmentFile=/etc/wardogs-votebot/votebot.env
+# Secrets are passed as systemd credentials: never in the environment, never in `ps`,
+# readable only by this service via $CREDENTIALS_DIRECTORY.
+LoadCredentialEncrypted=discord_token:/etc/credstore.encrypted/votebot_discord_token
+LoadCredentialEncrypted=rcon_password:/etc/credstore.encrypted/votebot_rcon_password
+# If your systemd is older than 250 (no encrypted credentials), comment the two lines
+# above and use these instead (files root:root 600):
+#LoadCredential=discord_token:/etc/credstore/votebot_discord_token
+#LoadCredential=rcon_password:/etc/credstore/votebot_rcon_password
+# -E: ignore PYTHON* env vars, -s: no user site-packages, -B: don't write .pyc
+ExecStart=/opt/wardogs-votebot/venv/bin/python -E -s -B -m votebot
+Restart=on-failure
+RestartSec=10
+
+# ---- sandboxing ----
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+KeyringMode=private
+UMask=0077
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @debug @cpu-emulation @obsolete @raw-io @reboot @swap
+SystemCallErrorNumber=EPERM
+StateDirectory=wardogs-votebot
+StateDirectoryMode=0700
+ReadOnlyPaths=/etc/wardogs-votebot
+ReadWritePaths=/var/lib/wardogs-votebot
+# ---- resource limits ----
+MemoryMax=256M
+TasksMax=64
+CPUQuota=50%
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target

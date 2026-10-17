@@ -1,0 +1,23 @@
+{
+  "_comment": "Optional. Rename, hide or restrict vote options. Anything omitted comes from the live server catalog. Changes load on the hourly catalog refresh, /voteadmin reload, or a restart.",
+
+  "maps": {
+    "Kavkazi":      { "name": "Bakurani" },
+    "Europe":       { "name": "Ozeti" },
+    "NorthAmerica": { "name": "Zestafona", "enabled": true }
+  },
+
+  "layouts": {
+    "Bakurani_KOTH_02": "New spawns"
+  },
+
+  "modes": {
+    "Standard": [],
+    "Infantry": ["KOTH_InfantryOnly"],
+    "Hardcore": ["KOTH_Hardcore"]
+  },
+
+  "lightingNames": {
+    "DayLateRain": "Rain"
+  }
+}

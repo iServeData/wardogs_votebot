@@ -1,0 +1,25 @@
+{
+  "_comment": "One entry per game server. Set SERVERS_FILE=/etc/wardogs-votebot/servers.json in votebot.env. Store each RCON password with: sudo bash deploy/add_server.sh <id>",
+  "servers": [
+    {
+      "id": "main",
+      "name": "NA West",
+      "rconBaseUrl": "https://203.0.113.10:7779",
+      "rconPasswordCredential": "rcon_password",
+      "optionsFile": "/etc/wardogs-votebot/options.json",
+      "inGameName": "NA West vote bot"
+    },
+    {
+      "id": "eu",
+      "name": "EU Central",
+      "rconBaseUrl": "https://198.51.100.20:7779",
+      "optionsFile": "/etc/wardogs-votebot/options_eu.json",
+      "announceChannelId": "000000000000000000",
+      "settings": {
+        "MAX_VOTES_PER_MAP": 2,
+        "VOTE_CLOSE_MODE": "admin",
+        "BLOCK_CURRENT_MAP": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+# docker compose up -d     (see README "Option B: Docker")
+services:
+  votebot:
+    build: .
+    image: wardogs-votebot:latest
+    restart: unless-stopped
+    env_file: ./config/votebot.env
+    environment:
+      DATA_DIR: /data
+      MESSAGES_FILE: /config/messages.txt
+      OPTIONS_FILE: /config/options.json
+      DISCORD_TOKEN_FILE: /run/secrets/discord_token
+      RCON_PASSWORD_FILE: /run/secrets/rcon_password
+    secrets: [discord_token, rcon_password]
+    volumes:
+      - votebot-data:/data
+      - ./config:/config:ro
+    read_only: true
+    tmpfs: ["/tmp:size=16m,mode=1777,noexec,nosuid"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+secrets:
+  discord_token:
+    file: ./secrets/discord_token
+  rcon_password:
+    file: ./secrets/rcon_password
+
+volumes:
+  votebot-data:

@@ -1,0 +1,5 @@
+# One message per line. A random line is added to every vote reply.
+# Blank lines and lines starting with # are ignored. Edits apply without a restart.
+Seed nights are posted in Discord. Bring a friend and help fill the server.
+Thanks for voting. Results update live with /votestatus.
+Report concerns to the admins in Discord.
