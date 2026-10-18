@@ -286,3 +286,10 @@ def test_example_servers_file_is_valid():
     cfgs = load_servers({"DISCORD_GUILD_ID": "1", "SERVERS_FILE": str(ROOT / "config" / "servers.json.example")},
                         check_only=True)
     assert [(c.server_id, c.name_from_server) for c in cfgs] == [("main", True), ("server_2", False)]
+
+
+def test_test_connections_lists_servers_once(tmp_path):
+    w = World(tmp_path)
+    w.run(["t", "q"])
+    assert "1 of 1 server(s) online." in w.text
+    assert w.text.count("http://203.0.113.10:7779") == 2   # once at start, once after the test

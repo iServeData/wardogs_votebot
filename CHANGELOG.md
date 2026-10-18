@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 (2026-10-17)
+
+- Server tool: "Test connections" no longer prints the server list twice; it prints how many are online.
+
 ## 0.2.1 (2026-10-17)
 
 - Guided server setup: `sudo bash deploy/manage_servers.sh` adds, modifies, removes and tests game

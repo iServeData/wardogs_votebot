@@ -577,7 +577,9 @@ class Manager:
             return
         self.out("Checking every server (read-only)...")
         changed = self.refresh(st)
-        self.show(st)
+        up = sum(1 for x in st.servers if st.live.get(x["id"]) and st.live[x["id"]].ok)
+        self.out(f"  {up} of {len(st.servers)} server(s) online." +
+                 ("" if up == len(st.servers) else " See NOT REACHABLE below for the reason."))
         if changed and st.managed:
             self.write_servers(st.servers, self.backup_dir("names"))
             self.out("  Saved the updated server names.")
