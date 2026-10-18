@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 (2026-10-18)
+
+- Rotation parser: the field regular expression can no longer slow down on long runs of letters or digits
+  (CodeQL py/polynomial-redos). Same fix in the test mock server. No behavior change.
+
 ## 0.2.2 (2026-10-17)
 
 - Server tool: "Test connections" no longer prints the server list twice; it prints how many are online.

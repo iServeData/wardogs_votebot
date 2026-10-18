@@ -91,7 +91,7 @@ def _entries(text: str) -> list[dict]:
             in_rot = m.group(1) == "/Script/WDGame.WDServerMapRotationSettings"
             continue
         if in_rot and re.match(r"^\s*[.+]RotationEntries=\(", ln):
-            f = dict(re.findall(r'(\w+)\s*=\s*"([^"]*)"', ln))
+            f = dict(re.findall(r'(?<!\w)(\w+)[ \t]*=[ \t]*"([^"]*)"', ln))
             exps = (f.get("Experiences") or f.get("Experience") or "").split("+")
             res.append({"map": f.get("Map"), "experiences": [e for e in exps if e], "lighting": f.get("Lighting"),
                         "zoneAlternator": f.get("ZoneAlternator")})

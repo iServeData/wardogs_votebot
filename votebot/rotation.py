@@ -49,7 +49,7 @@ _SECTION_RE = re.compile(r"^\s*\[" + re.escape(SECTION) + r"\]\s*$")
 _ANY_SECTION_RE = re.compile(r"^\s*\[.*\]\s*$")
 _ENTRY_RE = re.compile(r"^\s*([.+])RotationEntries\s*=\s*\((.*)\)\s*(?:(?:;|//).*)?$")
 _OTHER_ARRAY_OP_RE = re.compile(r"^\s*[-]RotationEntries\s*=|^\s*RotationEntries\s*=")
-_FIELD_RE = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
+_FIELD_RE = re.compile(r'(?<!\w)(\w+)[ \t]*=[ \t]*"([^"]*)"')
 _SAFE_VALUE = re.compile(r"^[A-Za-z0-9_.+\-]{1,120}$")
 # Secret-looking keys; if the server masks their values we must never write the document back,
 # or the masked placeholder would replace the real password and lock everyone out.
