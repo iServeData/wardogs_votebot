@@ -20,8 +20,13 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
+from pathlib import Path
 
 from aiohttp import web
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from votebot.rotation import quoted_fields  # noqa: E402  same parser as the bot
 
 STATE = web.AppKey("state", dict)
 
@@ -91,7 +96,7 @@ def _entries(text: str) -> list[dict]:
             in_rot = m.group(1) == "/Script/WDGame.WDServerMapRotationSettings"
             continue
         if in_rot and re.match(r"^\s*[.+]RotationEntries=\(", ln):
-            f = dict(re.findall(r'(?<!\w)(\w+)[ \t]*=[ \t]*"([^"]*)"', ln))
+            f = quoted_fields(ln)
             exps = (f.get("Experiences") or f.get("Experience") or "").split("+")
             res.append({"map": f.get("Map"), "experiences": [e for e in exps if e], "lighting": f.get("Lighting"),
                         "zoneAlternator": f.get("ZoneAlternator")})

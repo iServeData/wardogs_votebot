@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4 (2026-10-18)
+
+- Rotation parser reads key="value" fields with a plain text split instead of a regular expression, so
+  CodeQL's py/polynomial-redos check is satisfied. The test mock server uses the same parser. Same results.
+
 ## 0.2.3 (2026-10-18)
 
 - Rotation parser: the field regular expression can no longer slow down on long runs of letters or digits

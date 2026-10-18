@@ -49,7 +49,6 @@ _SECTION_RE = re.compile(r"^\s*\[" + re.escape(SECTION) + r"\]\s*$")
 _ANY_SECTION_RE = re.compile(r"^\s*\[.*\]\s*$")
 _ENTRY_RE = re.compile(r"^\s*([.+])RotationEntries\s*=\s*\((.*)\)\s*(?:(?:;|//).*)?$")
 _OTHER_ARRAY_OP_RE = re.compile(r"^\s*[-]RotationEntries\s*=|^\s*RotationEntries\s*=")
-_FIELD_RE = re.compile(r'(?<!\w)(\w+)[ \t]*=[ \t]*"([^"]*)"')
 _SAFE_VALUE = re.compile(r"^[A-Za-z0-9_.+\-]{1,120}$")
 # Secret-looking keys; if the server masks their values we must never write the document back,
 # or the masked placeholder would replace the real password and lock everyone out.
@@ -85,6 +84,23 @@ class RotationDoc:
         return "".join(out)
 
 
+def quoted_fields(text: str) -> dict:
+    """Key="value" pairs from a rotation line, without a regular expression (linear time)."""
+    out = {}
+    parts = text.split('"')
+    for i in range(1, len(parts) - 1, 2):      # odd parts are quoted values; the last one must be closed
+        pre = parts[i - 1].rstrip(" \t")
+        if not pre.endswith("="):
+            continue
+        pre = pre[:-1].rstrip(" \t")
+        j = len(pre)
+        while j > 0 and (pre[j - 1].isalnum() or pre[j - 1] == "_"):
+            j -= 1
+        if pre[j:]:
+            out[pre[j:]] = parts[i]
+    return out
+
+
 def check_not_redacted(text: str) -> None:
     for ln in text.splitlines():
         m = _SECRET_LINE.match(ln)
@@ -117,7 +133,7 @@ def entry_fields(line: str) -> dict[str, str]:
     m = _ENTRY_RE.match(line)
     if not m:
         return {}
-    return {k: v for k, v in _FIELD_RE.findall(m.group(2))}
+    return quoted_fields(m.group(2))
 
 
 def entry_prefix(line: str) -> str:
