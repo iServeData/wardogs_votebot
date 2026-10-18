@@ -163,6 +163,17 @@ class RconClient:
     async def status(self) -> dict:
         return await self.request("GET", "/v1/status") or {}
 
+    async def server_id(self) -> str | None:
+        """The server's WARDOGS join code (stable even when the server is renamed)."""
+        try:
+            data = await self.request("GET", "/v1/server-id") or {}
+        except RconError as e:
+            if e.status == 404:
+                return None
+            raise
+        v = data.get("serverId") if isinstance(data, dict) else None
+        return str(v)[:64] if v else None
+
     async def health(self) -> dict:
         return await self.request("GET", "/v1/health") or {}
 

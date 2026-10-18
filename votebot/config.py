@@ -162,6 +162,7 @@ class Config:
     block_current_map: bool = False  # refuse votes for the map that is playing right now
     server_id: str = DEFAULT_SERVER_ID   # internal id (lowercase letters, digits, _); keys stored data
     server_name: str = ""                # shown to players when the bot serves more than one server
+    name_from_server: bool = False       # True: use the name the game server reports (kept up to date)
 
     @property
     def label(self) -> str:
@@ -244,7 +245,8 @@ class Config:
             match_score_cap=_int("MATCH_SCORE_CAP", 100, 1, 100000),
             block_current_map=_bool("BLOCK_CURRENT_MAP", False),
             server_id=sid,
-            server_name=env.get("SERVER_NAME", "").strip()[:60],
+            server_name=env.get("SERVER_NAME", "").strip()[:100],
+            name_from_server=env.get("SERVER_NAME_SOURCE", "").strip() == "server",
         )
 
 
@@ -256,10 +258,10 @@ GLOBAL_ONLY = frozenset({"DISCORD_GUILD_ID", "DISCORD_TOKEN", "DISCORD_TOKEN_FIL
 MAX_SERVERS = 10
 _SERVER_KEYS = {"id", "name", "rconBaseUrl", "allowInsecureHttp", "rconCaFile", "rconPasswordCredential",
                 "rconPasswordFile", "optionsFile", "messagesFile", "inGameName", "announceChannelId",
-                "adminAlertChannelId", "settings"}
+                "adminAlertChannelId", "settings", "nameSource", "serverName", "serverId"}
 
 
-def load_servers(env: Mapping[str, str] | None = None) -> list[Config]:
+def load_servers(env: Mapping[str, str] | None = None, check_only: bool = False) -> list[Config]:
     """One Config per game server.
 
     Without SERVERS_FILE the bot serves exactly one server from the plain settings (the original
@@ -268,7 +270,13 @@ def load_servers(env: Mapping[str, str] | None = None) -> list[Config]:
     """
     env = dict(os.environ if env is None else env)
     path = (env.get("SERVERS_FILE") or "").strip()
+    if check_only:  # validate settings without reading any secret (used by the server manager)
+        for k in ("CREDENTIALS_DIRECTORY", "DISCORD_TOKEN_FILE", "RCON_PASSWORD_FILE"):
+            env.pop(k, None)
+        env["DISCORD_TOKEN"] = "check-only-placeholder"
     if not path:
+        if check_only:
+            env.setdefault("RCON_PASSWORD", "check-only-placeholder")
         return [Config.load(env)]
     try:
         doc = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -295,8 +303,10 @@ def load_servers(env: Mapping[str, str] | None = None) -> list[Config]:
         if not _SERVER_ID.match(sid):
             raise ConfigError(f"{where}: id must be lowercase letters, digits or _ (max 32), e.g. \"na_west\"")
         name = str(s.get("name") or "").strip()
-        if not name or len(name) > 60:
-            raise ConfigError(f"{where} ({sid}): name is required (max 60 characters)")
+        if not name or len(name) > 100:
+            raise ConfigError(f"{where} ({sid}): name is required (max 100 characters)")
+        if s.get("nameSource", "server") not in ("server", "custom"):
+            raise ConfigError(f"{where} ({sid}): nameSource must be \"server\" or \"custom\"")
         if sid in seen_ids or name.lower() in seen_names:
             raise ConfigError(f"{where}: id and name must be unique ({sid} / {name})")
         seen_ids.add(sid)
@@ -320,12 +330,15 @@ def load_servers(env: Mapping[str, str] | None = None) -> list[Config]:
             e["RCON_ALLOW_INSECURE_HTTP"] = "true" if s["allowInsecureHttp"] is True else "false"
         for k in [k for k in e if k.startswith("RCON_PASSWORD")]:
             del e[k]  # never inherit another server's password
-        if s.get("rconPasswordFile"):
+        if check_only:
+            e["RCON_PASSWORD"] = "check-only-placeholder"
+        elif s.get("rconPasswordFile"):
             e["RCON_PASSWORD_FILE"] = str(s["rconPasswordFile"])
         cred = str(s.get("rconPasswordCredential") or f"rcon_password_{sid}")
         if not re.match(r"^[A-Za-z0-9_.-]{1,64}$", cred):
             raise ConfigError(f"{where} ({sid}): rconPasswordCredential has unsupported characters")
         e["SERVER_ID"], e["SERVER_NAME"] = sid, name
+        e["SERVER_NAME_SOURCE"] = str(s.get("nameSource", "server"))
         try:
             out.append(Config.load(e, rcon_password_credential=cred))
         except ConfigError as err:

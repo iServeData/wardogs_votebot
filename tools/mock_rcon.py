@@ -98,11 +98,13 @@ def _entries(text: str) -> list[dict]:
     return res
 
 
-def make_app(password: str) -> web.Application:
+def make_app(password: str, server_name: str = "Example Community | Seed nights 7 PM",
+             server_id: str = "00000000-0000-4000-8000-000000000001") -> web.Application:
     st = {"config": DEFAULT_DOC, "rev": 1, "now": 2, "players": [], "scores": [10.0, 30.0], "whispers": [],
           "match_map_calls": [], "puts": 0, "travel_on_put": False, "reset_pointer_on_put": False,
           "matches_started": 0, "broadcasts": [],
-          "config_shape": "json", "force_now_after_put": None}  # json | text | standard | masked
+          "config_shape": "json", "force_now_after_put": None,
+          "server_name": server_name, "server_id": server_id}  # json | text | standard | masked
     st["live"] = _entries(st["config"])[st["now"]]  # what is actually running
 
     def rotation():
@@ -142,7 +144,7 @@ def make_app(password: str) -> web.Application:
         lv = st["live"]
         # the live server reports the city here ("Bakurani"), not the rotation map id ("Kavkazi")
         city = {"Kavkazi": "Bakurani", "Europe": "Ozeti", "NorthAmerica": "Zestafona"}.get(lv["map"], lv["map"])
-        return web.json_response({"serverName": "Mock", "map": city, "experiences": lv["experiences"],
+        return web.json_response({"serverName": st["server_name"], "map": city, "experiences": lv["experiences"],
                                   "lighting": lv["lighting"], "alternator": lv.get("zoneAlternator"),
                                   "players": {"current": len(st["players"]), "max": 98},
                                   "factionScores": [{"name": "A", "colorHex": "#f00", "score": st["scores"][0]},
@@ -296,7 +298,11 @@ def make_app(password: str) -> web.Application:
     async def m_state(_):
         return web.json_response({k: v for k, v in st.items()})
 
+    async def server_id_route(_):
+        return web.json_response({"serverId": st["server_id"]})
+
     r.add_get("/v1/capabilities", capabilities)
+    r.add_get("/v1/server-id", server_id_route)
     r.add_get("/v1/status", status)
     r.add_get("/v1/rotation", rotation_route)
     r.add_get("/v1/health", health)

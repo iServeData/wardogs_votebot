@@ -67,17 +67,55 @@ a minute = 5-minute silent block. A global cap protects the bot and the RCON bud
 
 ## Several game servers
 
-Without a servers file the bot serves one server, configured entirely in `votebot.env`. To add more, create
-`/etc/wardogs-votebot/servers.json` (see `config/servers.json.example`) and set
-`SERVERS_FILE=/etc/wardogs-votebot/servers.json` in `votebot.env`.
+One bot can serve up to 10 game servers. Set them up with the guided tool; you don't need to edit any file:
+
+```
+sudo bash deploy/manage_servers.sh
+```
+
+```
+  1) Example | NA West | Map Voting
+     http://203.0.113.10:7779   online, 3/100 players
+
+  a) Add   m) Modify   r) Remove   t) Test connections   q) Quit
+```
+
+- **Add** asks for the protocol (https or http), the IP address or hostname, the RCON port and the RCON
+  password (typed hidden, twice). It tests the connection, reads the **server's own name** and uses it in
+  Discord. You can type a shorter name instead. It can also ask for per-server voting settings and Discord
+  channels; anything you don't change uses the shared settings from `votebot.env`.
+- **Modify** shows each current value; Enter keeps it. Leave the password empty to keep the stored one.
+- **Remove** asks you to type `yes`, then removes the server and its stored password. This can't be undone.
+- **Test connections** checks every server. Names that changed on the game server are updated.
+
+Your existing server is listed automatically the first time. It keeps its votes, links and stored password.
+
+Behind the scenes the tool checks every change with the bot's own rules before saving, backs up the previous
+files to `/etc/wardogs-votebot/backups/`, stores passwords as encrypted systemd credentials (never in a config
+file, never on screen), and offers to restart the bot. If the bot doesn't start cleanly, it puts the previous
+files back and restarts the old setup.
+
+How players experience it:
+
+- `/link` once, on any server. The link works on every server.
+- `/vote` and `/voteup` go to the server they are playing on. If they aren't on any, the bot lists the servers.
+- Each server has its own rounds, votes, limits, rotation handling and safety stops.
+- Channel posts start with the server's name, and the `server` choice in commands lists them by name.
+
+### Editing by hand (optional)
+
+The tool writes `/etc/wardogs-votebot/servers.json` and adds `SERVERS_FILE=/etc/wardogs-votebot/servers.json`
+to `votebot.env`. You can edit `servers.json` yourself; the tool rereads it and keeps keys it doesn't manage.
+Restart the bot afterwards. Passwords are not in this file; add or change them with the tool.
 
 ```json
 {
   "servers": [
-    { "id": "main", "name": "NA West", "rconBaseUrl": "https://203.0.113.10:7779",
+    { "id": "main", "name": "NA West", "nameSource": "server",
+      "rconBaseUrl": "http://203.0.113.10:7779", "allowInsecureHttp": true,
       "rconPasswordCredential": "rcon_password" },
-    { "id": "eu", "name": "EU Central", "rconBaseUrl": "https://198.51.100.20:7779",
-      "optionsFile": "/etc/wardogs-votebot/options_eu.json",
+    { "id": "server_2", "name": "EU", "nameSource": "custom",
+      "rconBaseUrl": "https://198.51.100.20:7779", "rconPasswordCredential": "rcon_password_server_2",
       "settings": { "MAX_VOTES_PER_MAP": 2, "BLOCK_CURRENT_MAP": true } }
   ]
 }
@@ -85,36 +123,21 @@ Without a servers file the bot serves one server, configured entirely in `votebo
 
 | Key | Meaning |
 |---|---|
-| `id` | Internal id: lowercase letters, digits, `_`. Stored data is keyed by it, so don't rename it later. |
-| `name` | Shown to players (`[EU Central] …` on channel posts, the `server` choice in commands). |
-| `rconBaseUrl`, `allowInsecureHttp`, `rconCaFile` | That server's RCON endpoint (same rules as the single-server settings). |
-| `rconPasswordCredential` | systemd credential holding its RCON password. Default `rcon_password_<id>`. |
-| `rconPasswordFile` | Alternative to a credential: a `chmod 600` file (Docker, testing). |
-| `optionsFile`, `messagesFile`, `inGameName` | Per-server vote options, footer lines, and the name used in in-game whispers. |
-| `announceChannelId`, `adminAlertChannelId` | Per-server channels (otherwise the shared ones from `votebot.env`). |
-| `settings` | Any other `votebot.env` setting for this server only, e.g. `VOTE_CLOSE_MODE`, `MAX_VOTES_PER_MAP`. |
+| `id` | Internal id set by the tool. Stored votes are keyed by it, so don't change it. `main` is the original server. |
+| `name`, `nameSource` | Name shown in Discord. `"server"`: follow the name the game server reports. `"custom"`: always use `name`. |
+| `rconBaseUrl`, `allowInsecureHttp` | RCON address. `allowInsecureHttp` must be `true` for `http://`. |
+| `rconPasswordCredential` | Which stored password to use (set by the tool). |
+| `rconCaFile` | Optional: pin a self-signed RCON certificate. |
+| `optionsFile`, `messagesFile`, `inGameName` | Optional per-server vote options, footer lines, in-game whisper name. |
+| `settings` | Any `votebot.env` setting for this server only, e.g. `VOTE_CLOSE_MODE`, `MAX_VOTES_PER_MAP`. |
+| `serverName`, `serverId` | Last name and join code the server reported (kept up to date by the tool). |
 
-Rules the bot checks at startup: at most 10 servers; ids, names and RCON addresses must be unique; RCON
-passwords are never shared between servers; settings that belong to the whole bot (`DISCORD_GUILD_ID`,
-`VOTE_CHANNEL_IDS`, `ADMIN_ROLE_IDS`, `DATA_DIR`, `LOG_LEVEL`, `EPHEMERAL_REPLIES`, `LINK_CODE_TTL_SECONDS`)
-can't be set per server.
+The bot checks at startup: at most 10 servers; ids, names and RCON addresses unique; passwords never shared;
+settings that belong to the whole bot (`DISCORD_GUILD_ID`, `VOTE_CHANNEL_IDS`, `ADMIN_ROLE_IDS`, `DATA_DIR`,
+`LOG_LEVEL`, `EPHEMERAL_REPLIES`, `LINK_CODE_TTL_SECONDS`) can't be set per server. With a servers file,
+`RCON_BASE_URL` in `votebot.env` is no longer used.
 
-Storing a server's RCON password (encrypted for this machine; the main unit file is not edited):
-
-```
-sudo bash deploy/add_server.sh eu
-sudo systemctl restart wardogs-votebot
-```
-
-How players experience it:
-
-- `/link` once, on any server. The link works on every server.
-- `/vote` and `/voteup` go to the server they are playing on. If they aren't on any, the bot lists the servers.
-- Each server has its own rounds, votes, limits, rotation handling and safety stops.
-
-Moving from one server to several: the existing data (rounds, votes, rotation state) belongs to the server
-id the bot used before, `main`. Give your existing server `"id": "main"` and
-`"rconPasswordCredential": "rcon_password"` in the servers file and nothing else changes for it.
+To go back to one server without the file, remove the `SERVERS_FILE` line from `votebot.env` and restart.
 
 ---
 
@@ -241,7 +264,8 @@ cp config/options.json.example config/options.json
 docker compose up -d --build && docker compose logs -f
 ```
 
-For several servers in Docker, use `rconPasswordFile` per server with files under `/run/secrets/`.
+For several servers in Docker, write `servers.json` by hand and use `rconPasswordFile` per server with
+files under `/run/secrets/` (the guided tool is for systemd installs).
 
 ### 4. Test before going live
 
@@ -296,7 +320,7 @@ Pick an empty-server window and set `ADMIN_ALERT_CHANNEL_ID` to a staff channel 
 | `DRY_RUN` | `false` | Finalize runs the server's validate only; nothing is written |
 | `MESSAGES_FILE` | `DATA_DIR/messages.txt` | Footer lines, re-read automatically on change |
 | `OPTIONS_FILE` | empty | Rename, hide or restrict vote options (see below) |
-| `SERVERS_FILE` | empty | Serve several game servers (see above) |
+| `SERVERS_FILE` | empty | Serve several game servers (set by `deploy/manage_servers.sh`) |
 | `HEALTH_FILE`, `HEALTH_INTERVAL_SECONDS` | empty, `20` | Optional private health snapshot (see `deploy/health.conf`) |
 
 Secrets never go in `votebot.env`. They come from systemd encrypted credentials (installer default), or
@@ -371,9 +395,10 @@ python3 -m venv .venv
 map, and a `/v1/match/map` that travels immediately so tests prove the bot never calls it). Never expose it.
 
 ```
-votebot/   bot source: config, rcon, catalog, presence, tally, rotation, service, hub (several servers), bot (Discord)
+votebot/   bot source: config, rcon, catalog, presence, tally, rotation, service, hub (several servers),
+           bot (Discord), manage (the guided server tool)
 config/    votebot.env.example, servers.json.example, options.json.example, messages.txt
-deploy/    hardened systemd unit, health drop-in, install.sh, update.sh, add_server.sh
+deploy/    hardened systemd unit, health drop-in, install.sh, update.sh, manage_servers.sh
 tools/     mock_rcon.py, check_rcon_config.py, probe_rotation_pointer.py, update_lock.sh, check_lock.py, check_generic.py
 tests/     unit and end-to-end tests
 ```

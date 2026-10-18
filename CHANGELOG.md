@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1 (2026-10-17)
+
+- Guided server setup: `sudo bash deploy/manage_servers.sh` adds, modifies, removes and tests game
+  servers. It asks for protocol, address, port and password (hidden), tests the connection, and can set
+  per-server voting settings and channels. Passwords go into encrypted systemd credentials.
+- Server names come from the game server (`serverName` in `/v1/status`) and follow renames
+  (`"nameSource": "server"`); a custom name is still possible.
+- The join code (`/v1/server-id`) is recorded so the same server can't be added twice.
+- Every change is checked with the bot's own rules, backed up, and undone if the bot doesn't restart cleanly.
+- `deploy/add_server.sh` was replaced by the guided tool. README section on several servers rewritten.
+
 ## 0.2.0 (2026-10-17)
 
 Several servers

@@ -394,6 +394,11 @@ class VoteService:
 
     @property
     def name(self) -> str:
+        """Display name. With nameSource "server", the name the game server reports right now."""
+        if self.cfg.name_from_server:
+            live = str((self.tracker.state.status or {}).get("serverName") or "").strip()
+            if live:
+                return " ".join(live.split())[:100]
         return self.cfg.label
 
     def is_current_map(self, server_map: str) -> bool:

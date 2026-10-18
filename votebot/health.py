@@ -93,8 +93,8 @@ def _rcon_result(srv: "_ServerHealth", started: float, category: str) -> None:
 class _ServerHealth:
     """RCON result + population for one game server (status poll = GET /v1/players + /v1/status)."""
 
-    def __init__(self, server_id: str, name: str):
-        self.server_id, self.name = server_id, name
+    def __init__(self, server_id: str, name):
+        self.server_id, self._name = server_id, name  # name: str or a callable returning the live name
         self.rcon_last_attempt_at: float | None = None
         self.rcon_last_result: str | None = None
         self.rcon_last_success_at: float | None = None
@@ -103,6 +103,13 @@ class _ServerHealth:
         self.players_max: int | None = None
         self.players_observed_at: float | None = None
         self.loop_progress_at: float | None = None
+
+    @property
+    def name(self) -> str:
+        try:
+            return str(self._name() if callable(self._name) else self._name)
+        except Exception:  # noqa: BLE001
+            return self.server_id
 
     def rcon(self) -> dict:
         return {"last_attempt_at": self.rcon_last_attempt_at, "last_result": self.rcon_last_result,
@@ -172,7 +179,7 @@ class HealthRecorder:
         return st
 
     # ---------------------------------------------------------------- rcon
-    def wrap_tracker(self, tracker, server_id: str = "main", name: str = "") -> None:
+    def wrap_tracker(self, tracker, server_id: str = "main", name="") -> None:
         """Instrument PresenceTracker.poll (the bot's existing authenticated status poll)
         without changing what it does or returns. Call once per game server."""
         orig = tracker.poll

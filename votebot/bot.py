@@ -123,7 +123,7 @@ class VoteBot(discord.Client):
             svc.on_admin_alert = self._alert_poster(svc)
             svc.on_announce = self._announce_poster(svc)
             try:
-                rec.wrap_tracker(svc.tracker, svc.server_id, svc.name)
+                rec.wrap_tracker(svc.tracker, svc.server_id, lambda s=svc: s.name)
             except Exception as e:  # noqa: BLE001  never block the bot
                 log.warning("health snapshot for %s disabled (%s)", svc.server_id, type(e).__name__)
         try:
