@@ -34,7 +34,7 @@ jobs:
         run: python -m pytest -q -p no:cacheprovider
       - name: No private values in the code
         env:
-          PRIVATE_TERMS: ${{ vars.PRIVATE_TERMS }}
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
         run: python tools/check_generic.py
       - name: Shell scripts parse
         run: for f in deploy/*.sh; do bash -n "$f"; done

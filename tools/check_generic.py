@@ -4,7 +4,7 @@
 
 Flags: IPv4 addresses outside the documentation/loopback ranges, Discord-style IDs, real-looking
 SteamIDs, and any term listed in the PRIVATE_TERMS environment variable (comma separated; set it
-as a GitHub Actions variable so the terms themselves never appear in the repository).
+as a GitHub Actions secret so the terms never appear in the repository or in CI logs).
 """
 from __future__ import annotations
 
