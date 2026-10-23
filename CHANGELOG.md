@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5 (unreleased)
+
+- Health snapshot: each server's own name (`server_name`, from the status poll the bot already makes), so a
+  status page can show the name the game server uses right now. Control and invisible characters are removed
+  and it's cut to 100 characters. A failed poll keeps the last good name.
+
 ## 0.2.4 (2026-10-18)
 
 - Rotation parser reads key="value" fields with a plain text split instead of a regular expression, so

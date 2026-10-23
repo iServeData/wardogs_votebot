@@ -305,6 +305,36 @@ def test_health_lists_each_server_and_keeps_the_old_shape(tmp_path):
     run(go())
 
 
+def test_health_records_the_name_each_server_reports(tmp_path):
+    from votebot.health import clean_server_name
+
+    async def go():
+        t = await Two().start(tmp_path)
+        try:
+            t.apps[0][STATE]["server_name"] = "Example | West | Map Voting | example.org/join"
+            t.apps[1][STATE]["server_name"] = "  Example\u200b |\tEast\n| \x07Map Voting  "
+            rec = HealthRecorder(None)
+            for s in t.svcs:
+                rec.wrap_tracker(s.tracker, s.server_id, s.name)
+            snap = rec.snapshot()
+            assert snap["server_name"] is None and [x["server_name"] for x in snap["servers"]] == [None, None]
+            for s in t.svcs:
+                await s.tracker.poll()
+            snap = rec.snapshot()
+            assert snap["server_name"] == "Example | West | Map Voting | example.org/join"
+            assert [x["server_name"] for x in snap["servers"]] == \
+                ["Example | West | Map Voting | example.org/join", "Example | East | Map Voting"]
+            # A failed poll keeps the last good name; a rename shows on the next good poll
+            t.apps[0][STATE]["server_name"] = "Example | West | renamed"
+            await t.svcs[0].tracker.poll()
+            assert rec.snapshot()["server_name"] == "Example | West | renamed"
+        finally:
+            await t.close()
+    run(go())
+    assert clean_server_name("x" * 150) == "x" * 100
+    assert clean_server_name(None) is None and clean_server_name(12) is None and clean_server_name(" \n ") is None
+
+
 def test_discord_commands_register_for_one_and_many_servers(tmp_path):
     if importlib.util.find_spec("discord") is None:
         pytest.skip("discord.py not installed")

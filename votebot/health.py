@@ -6,7 +6,8 @@ RCON poll loop last *started an iteration* (loop_progress_at), so a coroutine th
 stuck inside the poll loop is detected even while the event loop itself is fine.
 
 Contents are deliberately minimal: timestamps, states, sanitised categories and the
-server's player count / slot limit (two numbers, v2 addition).
+server's player count / slot limit (two numbers, v2 addition), and the name the game server
+reports for itself ("server_name", the same text the in-game server browser shows; v3 addition).
 With more than one game server, a "servers" list repeats the rcon/players blocks per
 server (id + display name); the top-level blocks always describe the first server, so
 readers written for one server keep working.
@@ -26,6 +27,7 @@ import os
 import secrets
 import tempfile
 import time
+import unicodedata
 
 log = logging.getLogger("votebot.health")
 
@@ -80,6 +82,18 @@ def _players(srv: "_ServerHealth", status: dict, online) -> None:
         srv.players_current = srv.players_max = srv.players_observed_at = None
 
 
+def clean_server_name(v) -> str | None:
+    """The server's own name, made safe to publish: text only, no control or formatting characters,
+    whitespace collapsed, at most 100 characters. Anything else -> None."""
+    if not isinstance(v, str):
+        return None
+    # control characters (tabs, line breaks, bells) become spaces; invisible formatting characters go
+    v = "".join(" " if unicodedata.category(ch) == "Cc" else ch for ch in v
+                if not unicodedata.category(ch).startswith("C") or unicodedata.category(ch) == "Cc")
+    v = " ".join(v.split())[:100].strip()
+    return v or None
+
+
 def _rcon_result(srv: "_ServerHealth", started: float, category: str) -> None:
     srv.rcon_last_attempt_at = started
     srv.rcon_last_result = category
@@ -103,6 +117,7 @@ class _ServerHealth:
         self.players_max: int | None = None
         self.players_observed_at: float | None = None
         self.loop_progress_at: float | None = None
+        self.server_name: str | None = None     # what the game server calls itself (last good poll)
 
     @property
     def name(self) -> str:
@@ -201,6 +216,7 @@ class HealthRecorder:
                     if isinstance(st, dict) and st.get("map"):
                         _rcon_result(srv, started, OK)
                         _players(srv, st, tracker.state.online)
+                        srv.server_name = clean_server_name(st.get("serverName")) or srv.server_name
                     else:
                         _rcon_result(srv, started, INVALID)
                 else:
@@ -240,10 +256,11 @@ class HealthRecorder:
             },
             "rcon": first.rcon(),
             "players": first.players(),
+            "server_name": first.server_name,
         }
         if len(self.servers) > 1:
-            snap["servers"] = [{"id": x.server_id, "name": x.name, "rcon": x.rcon(), "players": x.players()}
-                               for x in self.servers]
+            snap["servers"] = [{"id": x.server_id, "name": x.name, "server_name": x.server_name,
+                                "rcon": x.rcon(), "players": x.players()} for x in self.servers]
         return snap
 
     def write(self) -> None:

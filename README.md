@@ -234,6 +234,9 @@ hidden). It never overwrites an existing `votebot.env`, `messages.txt` or `optio
 
 Optional health snapshot for a status page: copy `deploy/health.conf` to
 `/etc/systemd/system/wardogs-votebot.service.d/health.conf` and run `sudo systemctl daemon-reload`.
+It holds timestamps, states, player counts and, per server, `server_name`: the name the game server reports
+for itself (the text the in-game server browser shows, cleaned and at most 100 characters), so a status page
+can show the current name after a rename.
 
 The bot needs **no inbound ports**. It only connects out to Discord and to RCON.
 
