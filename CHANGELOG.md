@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.5 (unreleased)
+## 0.2.5 (2026-10-23)
 
 - Health snapshot: each server's own name (`server_name`, from the status poll the bot already makes), so a
   status page can show the name the game server uses right now. Control and invisible characters are removed
