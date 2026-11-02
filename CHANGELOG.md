@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- CONTRIBUTING.md: how to run the tests and what must never be committed.
+
 ## 0.2.5 (2026-10-23)
 
 - Health snapshot: each server's own name (`server_name`, from the status poll the bot already makes), so a
